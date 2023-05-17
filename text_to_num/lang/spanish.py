@@ -37,6 +37,10 @@ MULTIPLIERS = {
     "millon": 1000000,
     "millón": 1000000,
     "millones": 1000000,
+    "millardo": 10**9,  # not common, but no harm having it
+    "billón": 10**12,
+    "billon": 10**12,
+    "billones": 10**12,
 }
 
 
@@ -62,8 +66,13 @@ STENS: Dict[str, int] = {
     )
 }
 
-STENS["veintitrés"] = 23
+STENS["dieciséis"] = 16
+STENS["veintiuna"] = 21     # feminine
+STENS["veintiún"] = 21     # masculine
+STENS["veintiun"] = 21     # masculine
 STENS["veintidós"] = 22
+STENS["veintitrés"] = 23
+STENS["veintiséis"] = 26
 
 
 # Ten multiples
