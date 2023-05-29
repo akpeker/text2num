@@ -24,7 +24,7 @@ import re
 from itertools import dropwhile
 from typing import Any, Iterator, List, Sequence, Tuple, Union, Optional
 
-from .lang import LANG, Language, German, Portuguese
+from .lang import LANG, Language, German, Portuguese, Spanish
 from .parsers import (
     WordStreamValueParserInterface,
     WordStreamValueParser,  # we should rename this to 'WordStreamValueParserCommon'
@@ -33,9 +33,12 @@ from .parsers import (
 )
 
 from text_to_num.lang.portuguese import OrdinalsMerger
+from text_to_num.lang.spanish import OrdinalsMergerES
 
 omg = OrdinalsMerger()
 USE_PT_ORDINALS_MERGER = True
+omg_es = OrdinalsMergerES()
+USE_ES_ORDINALS_MERGER = True
 
 
 def look_ahead(sequence: Sequence[Any]) -> Iterator[Tuple[Any, Any]]:
@@ -165,6 +168,8 @@ def alpha2digit(
     # Post-processing
     if type(language) is Portuguese and USE_PT_ORDINALS_MERGER:
         text = omg.merge_compound_ordinals_pt(text)
+    if type(language) is Spanish and USE_ES_ORDINALS_MERGER:
+        text = omg_es.merge_compound_ordinals(text)
 
     return text
 
