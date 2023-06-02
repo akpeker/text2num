@@ -137,7 +137,7 @@ class Spanish(Language):
 
     SIGN = {"mas": "+", "menos": "-"}
     ZERO = {"cero"}
-    DECIMAL_SEP = "coma"
+    DECIMAL_SEP = "coma,punto,con"
     DECIMAL_SYM = "."
 
     AND_NUMS = {
