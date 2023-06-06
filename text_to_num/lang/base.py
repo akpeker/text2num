@@ -70,7 +70,7 @@ class Language:
         return NotImplemented
 
     def not_numeric_word(self, word: Optional[str]) -> bool:
-        return word is None or word != self.DECIMAL_SEP and word not in self.NUMBERS
+        return word is None or word != self.DECIMAL_SEP and word not in self.DECIMAL_SEP.split(",") and word not in self.NUMBERS
 
     def split_number_word(self, word: str) -> str:  # maybe use: List[str]
         """In some languages numbers are written as one word, e.g. German
