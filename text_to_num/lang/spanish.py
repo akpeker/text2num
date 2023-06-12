@@ -137,7 +137,7 @@ class Spanish(Language):
 
     SIGN = {"mas": "+", "menos": "-"}
     ZERO = {"cero"}
-    DECIMAL_SEP = "coma,punto,con"
+    DECIMAL_SEP = "coma,punto"
     DECIMAL_SYM = "."
 
     AND_NUMS = {
@@ -317,7 +317,7 @@ class OrdinalsMergerES:
         out = False
         if len(token) > 1 and ("º" in token or "°" in token or "ª" in token):
             out = True
-
+        # in case the ordinal is left as a word since it's smaller than the threshold:
         if token in [
             "primero", "primera", "primer", "primeros", "primeras", 
             "segundo", "segunda", "segundos", "segundas",

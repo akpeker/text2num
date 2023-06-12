@@ -34,13 +34,14 @@ from .parsers import (
 
 from text_to_num.lang.portuguese import OrdinalsMerger
 from text_to_num.lang.spanish import OrdinalsMergerES
-from text_to_num.lang.postprocess import DecimalMerger
+from text_to_num.lang.postprocess import DecimalMerger, CurrencyFormatter
 
 omg = OrdinalsMerger()
 USE_PT_ORDINALS_MERGER = True
 omg_es = OrdinalsMergerES()
 USE_ES_ORDINALS_MERGER = True
 USE_DECIMAL_MERGER = True  # Merge decimal part that are spoken digit by digit, or in 2 digit parts, upto a certain length
+USE_CURRENCY_FORMATTER = True
 
 def look_ahead(sequence: Sequence[Any]) -> Iterator[Tuple[Any, Any]]:
     """Look-ahead iterator.
@@ -113,6 +114,7 @@ def alpha2digit(
 
     language = LANG[lang]
     DecimalMerge = DecimalMerger(language.DECIMAL_SYM)
+    CurrencyFormat = CurrencyFormatter()
     segments = re.split(
         r"\s*[\.,;\(\)…\[\]:!\?]+\s*", text
     )
@@ -174,7 +176,8 @@ def alpha2digit(
         text = omg.merge_compound_ordinals_pt(text)
     if type(language) is Spanish and USE_ES_ORDINALS_MERGER:
         text = omg_es.merge_compound_ordinals(text)
-
+    if type(language) is Spanish and USE_CURRENCY_FORMATTER:
+        text = CurrencyFormat.format_currency(text)
     return text
 
 
