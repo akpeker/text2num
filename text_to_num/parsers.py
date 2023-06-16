@@ -644,7 +644,7 @@ class WordToDigitParser:
         if (
             self.signed
             and word in self.lang.SIGN
-            and look_ahead in self.lang.NUMBERS
+            and (look_ahead in self.lang.NUMBERS or look_ahead in self.lang.ZERO)
             and self.at_start()
         ):
             self._value.append(self.lang.SIGN[word])
@@ -656,6 +656,7 @@ class WordToDigitParser:
                 or look_ahead in self.lang.NUMBERS
                 or look_ahead in self.lang.ZERO
                 or look_ahead in self.lang.DECIMAL_SEP
+                or self.last_word in self.lang.SIGN
             )
         ):
             self._value.append("0")
@@ -685,7 +686,7 @@ class WordToDigitParser:
             and (look_ahead in self.lang.NUMBERS or look_ahead in self.lang.ZERO)
             and not self.in_frac
         ):
-            if not self.value:
+            if not self.value or not any(x.isdigit() for x in self.value):
                 self._value.append(str(self.int_builder.value))
             self._value.append(self.lang.DECIMAL_SYM)
             self.in_frac = True
