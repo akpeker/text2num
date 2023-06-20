@@ -84,8 +84,55 @@ class CurrencyFormatter:
             print("\t", text, "==>", x)
         return text
 
+class PostProcessorES:
+    MONTHS = "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split()
+    PERCENT_REGEX = re.compile(r"((\d)\s*per\s?cent\b)", re.IGNORECASE)
+    # purely numeric dates e.g. 07032021 (07/03/2021), 732021 with 4 digit years 19xx-20xx
+    NUMERIC_DATE_REGEX = re.compile(
+        r"\b(0?[1-9]|10|11|12)"  # month
+        + r" (0?[1-9]|[12]\d|30|31)"  # day
+        + r"(19\d\d|20\d\d)\b"  # year 19xx, 20xx, 50-99, 10-39
+    )
+    # month name followed by day, year
+    NUMERIC_MONTH_DATE_REGEX = re.compile(
+        r"\b(0?[1-9]|[12]\d|30|31)"  # day
+        + r"( del?)?\s+"
+        + r"(" + "|".join(MONTHS) + r")"
+        + r"( del?)?\s+"
+        + r"(19\d\d|20\d\d)\b"  # year 19xx, 20xx, 50-99, 10-39
+        , re.IGNORECASE
+    )
+    
+    TIME_REGEX = re.compile(r"\b(son las|es la)\s+(2[0-4]|[01]?\d)( y ([0-5]?\d|60))?", re.IGNORECASE)
+    
+    def re_sub_month(self, match) -> str:
+        da = match.group(1)
+        mo = self.MONTHS.index(match.group(3).lower()) + 1
+        ye = match.group(5)
+        return fr"{da}/{mo}/{ye}"
+    
+    def format_date(self, text: str, month_name=False) -> str:
+        """Format date into 03/05/2021"""
+        if month_name:
+            text = self.NUMERIC_MONTH_DATE_REGEX.sub(r"\1 \3 \5", text)
+        else:
+            text = self.NUMERIC_MONTH_DATE_REGEX.sub(self.re_sub_month, text)
+        text = self.NUMERIC_DATE_REGEX.sub(r"\1/\2/\3", text)
+        return text
+    
+    def re_sub_time(self, match) -> str:
+        txt = match.group(1)
+        hr = match.group(2)
+        mn = match.group(4)
+        if not mn:
+            print("****", match)
+        return f"{txt} {hr}:{mn.zfill(2)}"
+    
+    def format_time(self, text: str) -> str:
+        text = self.TIME_REGEX.sub(self.re_sub_time, text) 
+        return text
 
-if __name__ == "__main__":
+def test_DM():
     DM = DecimalMerger()
     tests = [
         "3.1 2 3 4 5 6 7 8 9",
@@ -95,25 +142,61 @@ if __name__ == "__main__":
     ]
     for t in tests:
         print(t, "\n=>\t", DM.merge_decimals(t.split()))
+    
+def test_dates():
+    PP = PostProcessorES()
+    tests = [
+        "Hoy es el 13 de octubre del 1999.",
+    ]
+    for t in tests:
+        print(t, "\n=>\t", PP.format_date(t))
+    
+    # test on a random set of dates, print for visual check.
+    print("TESTING RANDOM DATES")
+    import random
+    for x in range(20):
+        da = random.randint(1, 30)
+        mo = random.choice(PP.MONTHS)
+        ye = random.randint(1900, 2030)
+        co = random.choice(["del", "de"])
+        t = f"Hoy es el {da} de {mo} {co} {ye}."
+        print(t, "\t=>\t", PP.format_date(t))
+    
+    # test on all dates from given start to end. Automatic check.
+    print("TESTING RANGE of DATES")
+    from datetime import date, timedelta
+    start_date = date(1900, 1, 1)
+    end_date = date(2050, 1, 1)
+    delta = timedelta(days=1)
+    while start_date <= end_date:
+        da = start_date.day
+        mo = start_date.month
+        mo_name = PP.MONTHS[mo-1]
+        ye = start_date.year
+        co = random.choice(["del", "de"])
+        t = f"Hoy es el {da} de {mo_name} {co} {ye}."
+        tf = PP.format_date(t)
+        if tf != f"Hoy es el {da}/{mo}/{ye}.":
+            print("????", t, "\t=>\t", tf)
+        start_date += delta
 
-    """
-    1.50€ | un euro 0.50 céntimos | un euro con cincuenta céntimos
-    1.50€ | un euro 50 céntimos | un euro cincuenta céntimos
-    1.50€ | un euro 0.50 | un euro con cincuenta
-    1.50€ | un euro 50 | un euro cincuenta
-    1.50€ | 1.50 | uno con cincuenta
-    1.50€ | 1 50 | uno cincuenta
-    56.78€ | 56 euros 0.78 céntimos | cincuenta y seis euros con setenta y ocho céntimos
-    56.78€ | 56 euros 78 céntimos | cincuenta y seis euros setenta y ocho céntimos
-    56.78€ | 56 euros 0.78 | cincuenta y seis euros con setenta y ocho
-    56.78€ | 56 euros 78 | cincuenta y seis euros setenta y ocho
-    56.78€ | 56.78 | cincuenta y seis con setenta y ocho
-    56.78€ | 56 78 | cincuenta y seis setenta y ocho
-    $1.10 | Un dólar 10 céntimos | Un dólar diez céntimos
-    $1.10 | Un dólar 10 | Un dólar diez
-    $1.10 | 1 10 | Uno diez
-    $1.10 | Un dollar y 10 centavos | Un dollar y diez centavos
-    $3.16 | 3 dolares y 16 centavos | tres dolares y dieciseis centavos
-    $3.16 | 3 dólares y 0.106 centavos | tres dólares y con diez y seis centavos
-    $3.16 | 3 dólares y 10 6 centavos | tres dólares y diez y seis centavos
-    """
+def test_times():
+    PP = PostProcessorES()
+    tests = [
+        "Son las ocho y treinta.",
+    ]
+    for t in tests:
+        print(t, "\n=>\t", PP.format_date(t))
+        
+    print("TESTING RANDOM TIMES")
+    import random
+    for x in range(20):
+        hr = random.randint(0, 24)
+        mn = random.randint(0, 59)
+        co = "es la" if hr==1 else "son las"
+        t = f"Hey {co} {hr} y {mn}."
+        print(t, "\t=>\t", PP.format_time(t))
+
+if __name__ == "__main__":
+    test_dates()
+    test_times()
