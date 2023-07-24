@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Dict, Optional
+from typing import Dict, Tuple, Set, Optional
 import re
 
 from .base import Language
@@ -134,6 +134,7 @@ class Dutch(Language):
     DECIMAL_SYM = ","
 
     # AND_NUMS = set(UNITS.keys()).union(set(STENS.keys()).union(set(MTENS.keys())))
+    AND_NUMS: Set[str] = set()
     AND = AND
 
     NEVER_IF_ALONE = {"één"}
@@ -141,7 +142,7 @@ class Dutch(Language):
 
     # Relaxed composed numbers (two-words only)
     # start => (next, target)
-    # RELAXED: Dict[str, Tuple[str, str]] = {}  # TODO: not supported yet
+    RELAXED: Dict[str, Tuple[str, str]] = {}  # TODO: not supported yet
 
     def ord2card(self, word: str) -> Optional[str]:
         """Convert ordinal number to cardinal.
@@ -155,7 +156,7 @@ class Dutch(Language):
             elif word.endswith("te"):
                 word_base = word.lower()
             if word_base:
-                if word_base in self.ORDINALS_FIXED_GER:
+                if word_base in self.ORDINALS_FIXED_NL:
                     return self.ORDINALS_FIXED_NL[word_base]
                 else:
                     word_base = word_base[:-2]      # e.g. vierte -> vier
@@ -181,7 +182,7 @@ class Dutch(Language):
 
     def num_ord(self, digits: str, original_word: str) -> str:
         """Add suffix to number in digits to make an ordinal"""
-        return f"{digits}."
+        return f"{digits}e."
 
     def normalize(self, word: str) -> str:
         return word
@@ -211,7 +212,7 @@ class Dutch(Language):
                 # is (large) ordinal ending?
                 ord_match = None
                 if len(result) > 3 and text.startswith("ste"):
-                    ord_match = re.search(self.LARGE_ORDINAL_SUFFIXES_GER, text)
+                    ord_match = re.search(self.LARGE_ORDINAL_SUFFIXES_NL, text)
 
                 if ord_match:
                     # add ordinal ending
