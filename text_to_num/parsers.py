@@ -110,6 +110,10 @@ class WordStreamValueParser(WordStreamValueParserInterface):
             )
         elif self.last_word in self.lang.HUNDRED:
             expected = word not in self.lang.HUNDRED
+        
+        # Quick fix: allow for ninety six hundred (9600), twenty hundred (2000), etc.
+        if self.grp_val < 100 and word in self.lang.HUNDRED:
+            expected = True
 
         if update:
             self.last_word = word
@@ -135,7 +139,9 @@ class WordStreamValueParser(WordStreamValueParserInterface):
                 self.grp_val > 0 or coef == 1000
             )  # "mille" without unit      is additive
         # TODO: There is one exception to the above rule: "de milliard"
-        # ex. : "mille milliards de milliards"
+        # ex. : "mille milliards de milliards"
+        if coef > self.grp_val and coef * self.grp_val < self.n000_val:
+            return True
         return False
 
     def push(self, word: str, look_ahead: Optional[str] = None) -> bool:
