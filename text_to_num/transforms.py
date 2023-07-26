@@ -24,7 +24,7 @@ import re
 from itertools import dropwhile
 from typing import Any, Iterator, List, Sequence, Tuple, Union, Optional
 
-from .lang import LANG, Language, German, Portuguese, Spanish
+from .lang import LANG, Language, German, Portuguese, Spanish, Dutch
 from .parsers import (
     WordStreamValueParserInterface,
     WordStreamValueParser,  # we should rename this to 'WordStreamValueParserCommon'
@@ -139,6 +139,12 @@ def alpha2digit(
         out_segments: List[str] = []
         for segment, sep in zip(segments, punct):
             tokens = segment.split()
+            if type(language) is Dutch:
+                D = Dutch()
+                split_tokens = []
+                for t in tokens:
+                    split_tokens.extend(D.split_number_word(t).split())
+                tokens = split_tokens
             num_builder = WordToDigitParser(
                 language,
                 relaxed=relaxed,
