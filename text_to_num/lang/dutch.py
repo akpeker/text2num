@@ -95,30 +95,19 @@ NUMBERS.update(HUNDRED)
 AND = "en"
 ZERO = {"nul"}
 
-# Sort all numbers by length and start with the longest (we keep dict structure)
-ALL_WORDS_SORTED_REVERSE = dict(sorted(
-    # add "und" and "null" to NUMBERS
-    {"en": None, "nul": 0, **NUMBERS}.items(),
-    # take reverse length of keys to sort
-    key=lambda kv: len(kv[0]),
-    reverse=True
-))
 
 
 class Dutch(Language):
-
-    # TODO: can this be replaced entirely?
-    # Currently it has to be imported into 'parsers' as well ...
-    NUMBER_DICT_NL = {"nul": 0, **NUMBERS}
-
-    ORDINALS_FIXED_NL = {w:w+"de" for w in UNITS}
-    ORDINALS_FIXED_NL = {w:w+"de" for w in STENS}
-    ORDINALS_FIXED_NL["nul"] = "nulde"
-    ORDINALS_FIXED_NL["één"] = "eerste"
-    ORDINALS_FIXED_NL["drie"] = "derde"
-    ORDINALS_FIXED_NL["acht"] = "achtste"
+    NUMBERS_SET = set(NUMBERS.keys())
+    NUMBERS_SET.add("nul")
     
-    LARGE_ORDINAL_SUFFIXES_NL = r"^(ster|stes|sten|ste)(\s|$)"  # RegEx for ord. > 19 ???????????????????????????????????????????????????
+    # Irregular ordinals
+    ORDINALS_IR = {"eerste":"één", "derde":"drie"}
+    # Ordinals that are made by appending -de
+    ORDINALS_DE = set("tien elf twaalf dertien veertien vijftien zestien zeventien achttien negentien".split())
+    ORDINALS_DE.update(set("nul twee vier vijf zes zeven negen".split()))
+    # Ordinals that are made by appending -ste
+    ORDINALS_STE = set([*MULTIPLIERS, *MTENS, *HUNDRED, "acht"])
 
     MULTIPLIERS = MULTIPLIERS
     UNITS = UNITS
@@ -127,6 +116,15 @@ class Dutch(Language):
     # MTENS_WSTENS = MTENS_WSTENS
     HUNDRED = HUNDRED
     NUMBERS = NUMBERS
+
+    # Sort all numbers by length and start with the longest. For splitting merged words.
+    ALL_WORDS_SORTED_REVERSE = sorted(
+        # add "und" and "null" to NUMBERS
+        ["en", "nul", *NUMBERS, *ORDINALS_IR],
+        # take reverse length of keys to sort
+        key=lambda kv: len(kv[0]),
+        reverse=True
+    )
 
     SIGN = {"plus": "+", "minus": "-"}
     ZERO = ZERO
@@ -149,36 +147,13 @@ class Dutch(Language):
         Return None if word is not an ordinal or is better left in letters.
         """
         if len(word) > 4:
-            word_base = None
-            # example transf.: zwanzigster -> zwanzigste -> zwanzigs -> zwanzig
-            if word.endswith("ter") or word.endswith("tes") or word.endswith("ten"):
-                word_base = word[:-1].lower()       # e.g. erster -> erste
-            elif word.endswith("te"):
-                word_base = word.lower()
-            if word_base:
-                if word_base in self.ORDINALS_FIXED_NL:
-                    return self.ORDINALS_FIXED_NL[word_base]
-                else:
-                    word_base = word_base[:-2]      # e.g. vierte -> vier
-                    if word_base.endswith("s"):
-                        word_base = word_base[:-1]  # e.g. zwanzigs -> zwanzig
-                    if word_base in self.NUMBER_DICT_NL:
-                        return word_base
-                    # here we could still have e.g: "zweiundzwanzig"
-                    if word_base.endswith(tuple(self.NUMBER_DICT_NL)):
-                        # once again split - TODO: we should try to reduce split calls
-                        word_base_split = self.split_number_word(word_base).split()
-                        wbs_length = len(word_base_split)
-                        if (
-                            wbs_length > 0
-                            and word_base_split[wbs_length - 1] in self.NUMBER_DICT_NL
-                        ):
-                            return "".join(word_base_split)
-                    return None
-            else:
-                return None
-        else:
-            return None
+            if word in self.ORDINALS_IR:
+                return self.ORDINALS_IR[word]
+            if word.endswith("ste") and word[:-3].lower() in self.ORDINALS_STE:
+                return word[:-3]
+            if word.endswith("de") and word[:-2].lower() in self.ORDINALS_DE:
+                return word[:-2]
+        return None
 
     def num_ord(self, digits: str, original_word: str) -> str:
         """Add suffix to number in digits to make an ordinal"""
@@ -193,42 +168,38 @@ class Dutch(Language):
         """
         text = word.lower()  # NOTE: if we want to use this outside it should keep case
         invalid_word = ""
-        result = ""
+        result = []
         while len(text) > 0:
             # start with the longest
             found = False
-            for sw, int_num in ALL_WORDS_SORTED_REVERSE.items():
+            for sw in self.ALL_WORDS_SORTED_REVERSE:
                 # Check at the beginning of the current sentence for the longest word in ALL_WORDS
                 if text.startswith(sw):
                     if len(invalid_word) > 0:
                         result += invalid_word + " "
                         invalid_word = ""
-                    result += sw + " "
+                    # If this is a regular ordinal, expand word accordingly
+                    if text[len(sw):].startswith("ste") and sw in self.ORDINALS_STE:
+                        sw += "ste"
+                    result.append(sw)
                     text = text[len(sw):]
                     found = True
                     break
             # current beginning could not be assigned to a word:
             if not found:
-                # is (large) ordinal ending?
-                ord_match = None
-                if len(result) > 3 and text.startswith("ste"):
-                    ord_match = re.search(self.LARGE_ORDINAL_SUFFIXES_NL, text)
-
-                if ord_match:
-                    # add ordinal ending
-                    end = ord_match.span()[1]
-                    # result = result[:-1] + text[start:end]   # drop last space and add suffix
-                    text = text[end:]
-                    invalid_word = ""
-                elif not text[0] == " ":
+                if not text[0] == " ":
                     # move one index
                     invalid_word += text[0:1]
                     text = text[1:]
                 else:
                     if len(invalid_word) > 0:
-                        result += invalid_word + " "
+                        result.append(invalid_word)
                         invalid_word = ""
                     text = text[1:]
         if len(invalid_word) > 0:
-            result += invalid_word + " "
-        return result
+            # for now, assume regular-"de"-ordinal (e.g. negende) can occur only at the end
+            if invalid_word == "de" and result and result[-1] in self.ORDINALS_DE:
+                result[-1] += "de"
+            else:
+                result.append(invalid_word)
+        return " ".join(result)
