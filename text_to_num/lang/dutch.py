@@ -54,7 +54,7 @@ UNITS: Dict[str, int] = {
 UNITS["een"] = 1    # TODO: use that this can be followed only by "100", "1000", "en"
 
 # Single tens are terminals (see Rules)
-STENS: Dict[str, int] = {
+STENS_19: Dict[str, int] = {
     word: value
     for value, word in enumerate(
         "tien elf twaalf dertien veertien vijftien zestien zeventien achttien negentien".split(),
@@ -71,11 +71,17 @@ MTENS: Dict[str, int] = {
     )
 }
 
+# Single tens that are from 20 to 99. In Dutch, consider these as atomic units
+#    so that we don't have to deal with the reversed order of tens & units.
+STENS_99 = dict()
 for w10, v10 in MTENS.items():
     for w1, v1 in UNITS.items():
-        STENS[w1 + "en" + w10] = v10 + v1
+        STENS_99[w1 + "en" + w10] = v10 + v1
         if w1[-1] == "e":
-            STENS[w1 + "ën" + w10] = v10 + v1
+            STENS_99[w1 + "ën" + w10] = v10 + v1
+
+STENS = STENS_19.copy()
+STENS.update(STENS_99)
 
 # Ten multiples that can be combined with STENS
 # MTENS_WSTENS: Set[str] = set()
@@ -107,7 +113,7 @@ class Dutch(Language):
     ORDINALS_DE = set("tien elf twaalf dertien veertien vijftien zestien zeventien achttien negentien".split())
     ORDINALS_DE.update(set("nul twee vier vijf zes zeven negen".split()))
     # Ordinals that are made by appending -ste
-    ORDINALS_STE = set([*MULTIPLIERS, *MTENS, *HUNDRED, "acht"])
+    ORDINALS_STE = set([*MULTIPLIERS, *MTENS, *STENS_99, *HUNDRED, "acht"])
 
     MULTIPLIERS = MULTIPLIERS
     UNITS = UNITS
@@ -122,7 +128,7 @@ class Dutch(Language):
         # add "und" and "null" to NUMBERS
         ["en", "nul", *NUMBERS, *ORDINALS_IR],
         # take reverse length of keys to sort
-        key=lambda kv: len(kv[0]),
+        key=lambda x: len(x),
         reverse=True
     )
 
