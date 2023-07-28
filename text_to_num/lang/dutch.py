@@ -84,7 +84,7 @@ STENS = STENS_19.copy()
 STENS.update(STENS_99)
 
 # Ten multiples that can be combined with STENS
-# MTENS_WSTENS: Set[str] = set()
+MTENS_WSTENS: Set[str] = set()
 
 # "hundred" has a special status (see Rules)
 HUNDRED = {"honderd": 100}  # einhundert?
@@ -119,7 +119,7 @@ class Dutch(Language):
     UNITS = UNITS
     STENS = STENS
     MTENS = MTENS
-    # MTENS_WSTENS = MTENS_WSTENS
+    MTENS_WSTENS = MTENS_WSTENS
     HUNDRED = HUNDRED
     NUMBERS = NUMBERS
 
@@ -182,7 +182,7 @@ class Dutch(Language):
                 # Check at the beginning of the current sentence for the longest word in ALL_WORDS
                 if text.startswith(sw):
                     if len(invalid_word) > 0:
-                        result += invalid_word + " "
+                        result.append(invalid_word)
                         invalid_word = ""
                     # If this is a regular ordinal, expand word accordingly
                     if text[len(sw):].startswith("ste") and sw in self.ORDINALS_STE:
