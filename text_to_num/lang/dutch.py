@@ -132,9 +132,9 @@ class Dutch(Language):
         reverse=True
     )
 
-    SIGN = {"plus": "+", "minus": "-"}
+    SIGN = {"plus": "+", "min": "-", "minus": "-"}
     ZERO = ZERO
-    DECIMAL_SEP = "komma"
+    DECIMAL_SEP = "komma,punt"
     DECIMAL_SYM = ","
 
     # AND_NUMS = set(UNITS.keys()).union(set(STENS.keys()).union(set(MTENS.keys())))
@@ -175,6 +175,7 @@ class Dutch(Language):
         text = word.lower()  # NOTE: if we want to use this outside it should keep case
         invalid_word = ""
         result = []
+        isnum = []
         while len(text) > 0:
             # start with the longest
             found = False
@@ -188,6 +189,7 @@ class Dutch(Language):
                     if text[len(sw):].startswith("ste") and sw in self.ORDINALS_STE:
                         sw += "ste"
                     result.append(sw)
+                    isnum.append(1)
                     text = text[len(sw):]
                     found = True
                     break
@@ -200,6 +202,7 @@ class Dutch(Language):
                 else:
                     if len(invalid_word) > 0:
                         result.append(invalid_word)
+                        isnum.append(0)
                         invalid_word = ""
                     text = text[1:]
         if len(invalid_word) > 0:
@@ -208,4 +211,5 @@ class Dutch(Language):
                 result[-1] += "de"
             else:
                 result.append(invalid_word)
+                isnum.append(0)
         return " ".join(result)
