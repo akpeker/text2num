@@ -99,19 +99,19 @@ NUMBERS.update(HUNDRED)
 # NUMBERS.update(COMPOSITES) # COMPOSITES are already in STENS for the German language
 
 AND = "en"
-ZERO = {"nul"}
+ZERO = {"nul","null"}
 
 
 
 class Dutch(Language):
     NUMBERS_SET = set(NUMBERS.keys())
-    NUMBERS_SET.add("nul")
+    NUMBERS_SET.update(ZERO)
     
     # Irregular ordinals
     ORDINALS_IR = {"eerste":"één", "derde":"drie"}
     # Ordinals that are made by appending -de
     ORDINALS_DE = set("tien elf twaalf dertien veertien vijftien zestien zeventien achttien negentien".split())
-    ORDINALS_DE.update(set("nul twee vier vijf zes zeven negen".split()))
+    ORDINALS_DE.update(set("nul null twee vier vijf zes zeven negen".split()))
     # Ordinals that are made by appending -ste
     ORDINALS_STE = set([*MULTIPLIERS, *MTENS, *STENS_99, *HUNDRED, "acht"])
 
@@ -126,7 +126,7 @@ class Dutch(Language):
     # Sort all numbers by length and start with the longest. For splitting merged words.
     ALL_WORDS_SORTED_REVERSE = sorted(
         # add "und" and "null" to NUMBERS
-        ["en", "nul", *NUMBERS, *ORDINALS_IR],
+        ["en", *ZERO, *NUMBERS, *ORDINALS_IR],
         # take reverse length of keys to sort
         key=lambda x: len(x),
         reverse=True
@@ -189,7 +189,7 @@ class Dutch(Language):
                     if text[len(sw):].startswith("ste") and sw in self.ORDINALS_STE:
                         sw += "ste"
                     result.append(sw)
-                    isnum.append(1)
+                    isnum.append(-1 if sw=="en" else 1)
                     text = text[len(sw):]
                     found = True
                     break
@@ -212,4 +212,50 @@ class Dutch(Language):
             else:
                 result.append(invalid_word)
                 isnum.append(0)
+        # apply some checks to make sure we are not splitting a non-number word
+        if all(x != 1 for x in isnum): # if all non-number or "en", don't split
+            return word
+        # if all(x != 0 for x in isnum):
+        return " ".join(result)
+
+    def split_number_word_0(self, word: str) -> str:
+        """Splits number words into separate words, e.g.
+        "zevenhonderdtweeëndertigduizendvijfhonderdtweeënzeventig" -> 'zeven honderd tweeëndertig duizend vijf honderd tweeënzeventig '
+        """
+        text = word.lower()  # NOTE: if we want to use this outside it should keep case
+        invalid_word = ""
+        result = []
+        while len(text) > 0:
+            # start with the longest
+            found = False
+            for sw in self.ALL_WORDS_SORTED_REVERSE:
+                # Check at the beginning of the current sentence for the longest word in ALL_WORDS
+                if text.startswith(sw):
+                    if len(invalid_word) > 0:
+                        result.append(invalid_word)
+                        invalid_word = ""
+                    # If this is a regular ordinal, expand word accordingly
+                    if text[len(sw):].startswith("ste") and sw in self.ORDINALS_STE:
+                        sw += "ste"
+                    result.append(sw)
+                    text = text[len(sw):]
+                    found = True
+                    break
+            # current beginning could not be assigned to a word:
+            if not found:
+                if not text[0] == " ":
+                    # move one index
+                    invalid_word += text[0:1]
+                    text = text[1:]
+                else:
+                    if len(invalid_word) > 0:
+                        result.append(invalid_word)
+                        invalid_word = ""
+                    text = text[1:]
+        if len(invalid_word) > 0:
+            # for now, assume regular-"de"-ordinal (e.g. negende) can occur only at the end
+            if invalid_word == "de" and result and result[-1] in self.ORDINALS_DE:
+                result[-1] += "de"
+            else:
+                result.append(invalid_word)
         return " ".join(result)
