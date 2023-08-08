@@ -172,6 +172,8 @@ class Dutch(Language):
         """Splits number words into separate words, e.g.
         "zevenhonderdtweeëndertigduizendvijfhonderdtweeënzeventig" -> 'zeven honderd tweeëndertig duizend vijf honderd tweeënzeventig '
         """
+        if len(word) < 9: # shortest compound word is 10 chars e.g. honderd+één
+            return word
         text = word.lower()  # NOTE: if we want to use this outside it should keep case
         invalid_word = ""
         result = []
